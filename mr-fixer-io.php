@@ -2,7 +2,7 @@
 
 /**
  * Plugin Name:  fixer.io Currency Conversion by Marketing Results
- * Plugin URI:   https://www.marketingresults.com.au
+ * Plugin URI:   https://github.com/mresults/mr-fixer-io 
  * Description:  Provides currency conversion options via fixer.io
  * Version:      1.0.0
  * Author:       Shaun Johnston
