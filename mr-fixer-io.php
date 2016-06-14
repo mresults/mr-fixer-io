@@ -124,14 +124,17 @@ class MrFixerIO {
 
   private function get_country() {
     if (null === $this->country) {
-      $this->country = get_query_var('mr-fixer-io-cur', get_option(self::prefix . 'default'));
-      if ($this->country !== get_option(self::prefix . 'country')) {
-        update_option(self::prefix . 'country', $this->country);
+      global $wp_session;
+      $stored_country = (!empty($wp_session[self::prefix . 'country'])) 
+        ? $wp_session[self::prefix . 'country'] 
+        : get_option(self::prefix . 'default');
+      $this->country = get_query_var('mr-fixer-io-cur', $stored_country);
+      if ($this->country !== $stored_country) {
+        $wp_session[self::prefix . 'country'] = $this->country;
       }
     }
     return $this->country;
   }
-
 
 }
 
