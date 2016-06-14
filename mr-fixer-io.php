@@ -59,7 +59,6 @@ class MrFixerIO {
         'symbol' => '&#8369;',
     )));
     add_option(self::prefix . 'default', 'au');
-    get_option(self::prefix . 'country', 'au');
     add_option(self::prefix . 'base', 'AUD');
   }
 
@@ -124,7 +123,7 @@ class MrFixerIO {
 
   private function get_country() {
     if (null === $this->country) {
-      global $wp_session;
+      $wp_session = WP_Session::get_instance();
       $stored_country = (!empty($wp_session[self::prefix . 'country'])) 
         ? $wp_session[self::prefix . 'country'] 
         : get_option(self::prefix . 'default');
