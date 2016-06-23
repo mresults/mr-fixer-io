@@ -117,8 +117,10 @@ class MrFixerIO {
     add_filter('query_vars', array($this, 'queryvars'));
   }
 
+  # Adds some WordPress widget hooks
   public function add_widgets() {
 
+    # Currency selector widget
     add_action('widgets_init', function() { 
       register_widget('mrFixerIO_Widget_Currency_Selector'); 
     });
@@ -269,8 +271,10 @@ class MrFixerIO {
 
 }
 
+# This widget is a functional replacement for the currency selector shortcode
 class mrFixerIO_Widget_Currency_Selector extends WP_Widget {
 
+  # Initialise the widget
   public function __construct() {
 
     $widget_ops = array(
@@ -282,18 +286,28 @@ class mrFixerIO_Widget_Currency_Selector extends WP_Widget {
 
   }
 
+  # Outputs the widget instance's HTML code to WordPress
   public function widget($args, $instance) {
+
+    #Before widget filter
     print $args['before_widget'];
 
+    # Print the title if one exists
     if (!empty($instance['title'])) {
       print $args['before_title'] . apply_filters('widget_title', $instance['title']) . $args['after_title'];
     }
+
+    # Get the currency selector HTML from the main plugin
     $mr_fixer_io = mrFixerIO::getInstance();
+
+    # ... and then output it
     print $mr_fixer_io->country_select();
 
+    # After widget filter
     print $args['after_widget'];
   }
 
+  # Simple form to set widget options - not much here at the moment
   public function form($instance) {
     $title = !empty($instance['title']) ? $instance['title'] : __('New title', 'text_domain');
 
@@ -311,6 +325,7 @@ class mrFixerIO_Widget_Currency_Selector extends WP_Widget {
     <?php
   }
 
+  # Handles input for the above form
   public function update($new_instance, $old_instance) {
     $instance = array();
     $instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
