@@ -283,11 +283,19 @@ class mrFixerIO_Widget_Currency_Selector extends WP_Widget {
   }
 
   public function widget($args, $instance) {
-    print mrFixerIO::country_select();
+    print $args['before_widget'];
+
+    if (!empty($instance['title'])) {
+      print $args['before_title'] . apply_filters('widget_title', $instance['title']) . $args['after_title'];
+    }
+    $mr_fixer_io = mrFixerIO::getInstance();
+    print $mr_fixer_io->country_select();
+
+    print $args['after_widget'];
   }
 
   public function form($instance) {
-    $title = !empty($instance['title'] ? $instance['title'] : __('New title', 'text_domain');
+    $title = !empty($instance['title']) ? $instance['title'] : __('New title', 'text_domain');
 
     ?>
       <p>
