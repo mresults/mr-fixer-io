@@ -54,6 +54,10 @@ class MrFixerIO {
 
     # Implement plugin-specific filters
     self::add_filters();
+
+    # Implement plugin-specific widgets
+    self::add_widgets();
+
   }
 
   # Dummy - prevents instantiation of a copy of this plugin
@@ -113,6 +117,12 @@ class MrFixerIO {
     add_filter('query_vars', array($this, 'queryvars'));
   }
 
+  public function add_widgets() {
+
+    add_action('widgets_init', function() { 
+      register_widget('mrFixerIO_Widget_Currency_Selector'); 
+    });
+
   # Adds some query variables to WordPress' allowed query variables list
   public function queryvars($qvars) {
 
@@ -123,26 +133,7 @@ class MrFixerIO {
 
   # This shortcode renders a country selection widget
   public function shortcode_country_select($atts) {
-
-    # Get the list of countries to render
-    $countries = get_option(self::prefix . 'countries');
-
-    # Instantiate the string containing the widget HTML
-    $links = '';
-
-    # Iterate through the countries
-    foreach ($countries as $country => $currency) {
-
-      # Append a link to the currency conversion URL for this country
-      $links .= "<a class=\flag flag-{$country}\" href=" . self::currency_url($country) . ">{$country}</a>\n";
-    }
-
-    # Return an HTML widget containing the links
-    return "
-      <div class=\"mr-fixer-io-country-select\">
-        {$links}
-      </div>
-    ";
+    return self::country_select();
   }
 
   # Perform currency conversion for given attributes
@@ -175,6 +166,31 @@ class MrFixerIO {
 
     # Return the rate, prepended with the currency symbol for the given country
     return "{$countries[$atts['country']]['symbol']}{$converted}";
+  }
+
+  # Returns a country selection widget
+  public function country_select() {
+
+    # Get the list of countries to render
+    $countries = get_option(self::prefix . 'countries');
+
+    # Instantiate the string containing the widget HTML
+    $links = '';
+
+    # Iterate through the countries
+    foreach ($countries as $country => $currency) {
+
+      # Append a link to the currency conversion URL for this country
+      $links .= "<a class=\flag flag-{$country}\" href=" . self::currency_url($country) . ">{$country}</a>\n";
+    }
+
+    # Return an HTML widget containing the links
+    return "
+      <div class=\"mr-fixer-io-country-select\">
+        {$links}
+      </div>
+    ";
+
   }
 
   # Set the conversion URL for the given country
@@ -248,6 +264,48 @@ class MrFixerIO {
 
     # Return the country we have fetched
     return $this->country;
+  }
+
+}
+
+class mrFixerIO_Widget_Currency_Selector extends WP_Widget {
+
+  public function __construct() {
+
+    $widget_ops = array(
+      'classname' => 'mr_fixer_io_widget_currency_selector',
+      'description' => 'Presents currency selection options',
+    );
+
+    parent::__construct('mr_fixer_op_widget_currency_selector', 'Fixer.io Currency Selector', $widget_ops);
+
+  }
+
+  public function widget($args, $instance) {
+    print mrFixerIO::country_select();
+  }
+
+  public function form($instance) {
+    $title = !empty($instance['title'] ? $instance['title'] : __('New title', 'text_domain');
+
+    ?>
+      <p>
+        <label for="<?php print esc_attr($this->get_field_id('title')); ?>"><?php _e(esc_attr('Title:')); ?></label>
+        <input 
+          class="widefat" 
+          id="<?php print esc_attr($this->get_field_id('title')); ?>"
+          name="<?php print esc_attr($this->get_field_name('title')); ?>"
+          type="text"
+          value="<?php print esc_attr($title); ?>"
+        />
+    </p>
+    <?php
+  }
+
+  public function update($new_instance, $old_instance) {
+    $instance = array();
+    $instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
+    return $instance;
   }
 
 }
