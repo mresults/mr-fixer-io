@@ -122,6 +122,7 @@ class MrFixerIO {
     add_action('widgets_init', function() { 
       register_widget('mrFixerIO_Widget_Currency_Selector'); 
     });
+  }
 
   # Adds some query variables to WordPress' allowed query variables list
   public function queryvars($qvars) {
