@@ -20,6 +20,7 @@ This shortcode will output a list of preferred currency links.  The options are 
 This shortcode will convert a value to either the known preferred country, or a country defined via the country attribute.  There are two attributes:
 - `value` - This is an integer or decimal value, which will be converted from AUD to the supplied or preferred country.  If the attribute is not supplied, it will default to *1.00*.
 - `country` - This is a string corresponding to one of the following: `AU`, `US`, `UK`, `PH`.  If the country is supplied in the shortcode, it will override any country preference set by the viewer.
+
 ### Widgets
 A currency selection widget is provided.  The options are statically limited to `AU`, `US`, `UK`, `PH`.
 ## Roadmap
