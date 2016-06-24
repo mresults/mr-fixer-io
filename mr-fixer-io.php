@@ -188,11 +188,17 @@ class MrFixerIO {
   # Returns an HTML fragment containing the selected currency
   public function selected_currency() {
 
+    # Get our list of allowed countries
+    $countries = get_option(self::prefix . 'countries');
+
     # Get the currently selected country
     $country = self::get_country();
 
+    # Get the currency ISO code for the selected country
+    $currency = $countries[$country]['currency'];
+
     # Return the currency code for the country
-    return '<span class="' . self::prefix . '"selected_country">' . $country['currency'] . '</span>';
+    return '<span class="' . self::prefix . '"selected_country">' . $currency . '</span>';
 
   }
 
