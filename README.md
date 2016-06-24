@@ -31,8 +31,8 @@ This shortcode will display the currently selected currency.
 ## Roadmap
 The following features will be built
 - [x] ~~Currency selection widget~~ (done)
-- [x] Shortcode to display the selected currency
-- [x] Widget to display the selected country
+- [x] ~~Shortcode to display the selected currency~~ (done)
+- [x] ~~Widget to display the selected country~~ (done)
 - [ ] Dashboard settings page
 - [ ] 'Base currency' setting
 - [ ] 'Available currencies' setting
