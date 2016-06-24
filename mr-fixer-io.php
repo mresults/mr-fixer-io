@@ -105,6 +105,9 @@ class MrFixerIO {
     # Call the plugin's country select shortcode method when the shortcode is 
     # called
     add_shortcode(self::prefix . 'country_select', array($this, 'shortcode_country_select'));
+    # Call the plugin's selected currency shortcode method when the shortcode
+    # is called
+    add_shortcode(self::prefix . 'selected_currency', array($this, 'shortcode_selected_currency'));
     # Call the plugin's currency conversion shortcode method when the 
     # shortcode is called
     add_shortcode(self::prefix . 'convert', array($this, 'shortcode_convert'));
@@ -124,6 +127,12 @@ class MrFixerIO {
     add_action('widgets_init', function() { 
       register_widget('mrFixerIO_Widget_Currency_Selector'); 
     });
+
+    # Selected currency widget
+    add_action('widgets_init', function() { 
+      register_widget('mrFixerIO_Widget_Selected_Currency'); 
+    });
+
   }
 
   # Adds some query variables to WordPress' allowed query variables list
@@ -137,6 +146,11 @@ class MrFixerIO {
   # This shortcode renders a country selection widget
   public function shortcode_country_select($atts) {
     return self::country_select();
+  }
+
+  # This shortcode renders a fragment showing the selected currency 
+  public function shortcode_selected_currency($atts) {
+    return self::selected_currency();
   }
 
   # Perform currency conversion for given attributes
@@ -169,6 +183,17 @@ class MrFixerIO {
 
     # Return the rate, prepended with the currency symbol for the given country
     return "{$countries[$atts['country']]['symbol']}{$converted}";
+  }
+
+  # Returns an HTML fragment containing the selected currency
+  public function selected_currency() {
+
+    # Get the currently selected country
+    $country = self::get_country();
+
+    # Return the currency code for the country
+    return '<span class="' . self::prefix . '"selected_country">' . $country['currency'] . '</span>';
+
   }
 
   # Returns a country selection widget
@@ -302,6 +327,69 @@ class mrFixerIO_Widget_Currency_Selector extends WP_Widget {
 
     # ... and then output it
     print $mr_fixer_io->country_select();
+
+    # After widget filter
+    print $args['after_widget'];
+  }
+
+  # Simple form to set widget options - not much here at the moment
+  public function form($instance) {
+    $title = !empty($instance['title']) ? $instance['title'] : __('New title', 'text_domain');
+
+    ?>
+      <p>
+        <label for="<?php print esc_attr($this->get_field_id('title')); ?>"><?php _e(esc_attr('Title:')); ?></label>
+        <input 
+          class="widefat" 
+          id="<?php print esc_attr($this->get_field_id('title')); ?>"
+          name="<?php print esc_attr($this->get_field_name('title')); ?>"
+          type="text"
+          value="<?php print esc_attr($title); ?>"
+        />
+    </p>
+    <?php
+  }
+
+  # Handles input for the above form
+  public function update($new_instance, $old_instance) {
+    $instance = array();
+    $instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
+    return $instance;
+  }
+
+}
+
+# This widget is a functional replacement for the selected currency shortcode
+class mrFixerIO_Widget_Selected_Currency extends WP_Widget {
+
+  # Initialise the widget
+  public function __construct() {
+
+    $widget_ops = array(
+      'classname' => 'mr_fixer_io_widget_selected_currency',
+      'description' => 'Presents the currently selected currency',
+    );
+
+    parent::__construct('mr_fixer_op_widget_selected_currency', 'Fixer.io Selected Currency', $widget_ops);
+
+  }
+
+  # Outputs the widget instance's HTML code to WordPress
+  public function widget($args, $instance) {
+
+    #Before widget filter
+    print $args['before_widget'];
+
+    # Print the title if one exists
+    if (!empty($instance['title'])) {
+      print $args['before_title'] . apply_filters('widget_title', $instance['title']) . $args['after_title'];
+    }
+
+    # Get the currency selector HTML from the main plugin
+    $mr_fixer_io = mrFixerIO::getInstance();
+
+    # ... and then output it
+    print $mr_fixer_io->selected_currency();
 
     # After widget filter
     print $args['after_widget'];
