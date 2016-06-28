@@ -23,6 +23,12 @@ class MrFixerIO {
   # Location of the Google API csv for currency symbols
   const google_api_symbols_url = 'https://developers.google.com/adwords/api/docs/appendix/currencycodes.csv';
 
+  private $settings = array(
+    'allowed_currencies' => array('AUD','GBP','USD','PHP'),
+    'default_currency' => 'AUD',
+    'base_currency' => 'AUD'
+  );
+
   # This plugin class
   private static $instance;
 
@@ -61,6 +67,9 @@ class MrFixerIO {
     # Run the activate method when the plugin is activated
     register_activation_hook(__FILE__, array($this, 'activate'));
 
+    # Run the deactivate method when the plugin is deactivated
+    register_deactivation_hook(__FILE__, array($this, 'deactivate'));
+
     # Implement plugin-specific shortcode hooks
     self::add_shortcodes();
 
@@ -69,6 +78,9 @@ class MrFixerIO {
 
     # Implement plugin-specific widgets
     self::add_widgets();
+
+    # Implements an options page
+    self::add_options_page();
 
   }
 
@@ -84,12 +96,19 @@ class MrFixerIO {
   # Set up this plugin on activation
   public function activate() {
 
-    # Add a WordPress option containing the default currencies used
+    # Write the plugin's default settings to the database
+    add_option(self::prefix . 'settings', $this->settings);
+
     # in the plugin
-    add_option(self::prefix . 'allowed_currencies', array('AUD', 'USD', 'GBP', 'PHP'));
+    add_option(self::prefix . 'allowed_currencies', array(
+      'AUD' => array(), 
+      'USD' => array(),
+      'GBP' => array(), 
+      'PHP' => array(),
+    ));
 
     # Add a WordPress option containing the currencies offered by fixer.io
-    add_options(self::prefix . 'currencies', self::fetch_currencies_meta);
+    add_option(self::prefix . 'currencies', self::fetch_currencies_meta());
 
     # Add a WordPress option containing the timestamp the currencies were
     # fetched
@@ -100,6 +119,18 @@ class MrFixerIO {
 
     # Add a WordPress option containing the base currency
     add_option(self::prefix . 'base', 'AUD');
+  }
+
+  # Remove plugin settions on deactivation
+  public function deactivate() {
+
+    # Delete all the options added when activation occurred
+    delete_option(self::prefix . 'settings');
+    delete_option(self::prefix . 'allowed_currencies');
+    delete_option(self::prefix . 'currencies');
+    delete_option(self::prefix . 'currencies_timestamp');
+    delete_option(self::prefix . 'default_currency');
+    delete_option(self::prefix . 'base');
   }
 
   # Add some WordPress shortcode hooks
@@ -138,6 +169,79 @@ class MrFixerIO {
 
   }
 
+  # Add an options page, using the Rational Option Pages library
+  public function add_options_page() {
+
+    # Include the Rational Option Pages library
+    require_once('lib/RationalOptionPages.php');
+
+    # Define the options page
+    $pages = array(
+      self::prefix . 'settings' => array(
+        'parent_slug' => 'options-general.php',
+        'page_title' => __('fixer.io Settings', 'text-domain'),
+        'icon_url' => 'dashicons-chart-area',
+        'sections' => array(
+          'defaults' => array(
+            'title' => __('Defaults', 'text-domain'),
+            'text' => '<p>' . __('Set some default options for fixer.io', 'text-domain') . '</p>',
+            'fields' => array(
+              'allowed_currencies' => array(
+                'title' => __('Allowed Currencies', 'text-domain'),
+                'type' => 'select',
+                'text' => __('Set the currencies that visitors can choose to convert to', 'text-domain'),
+                'attributes' => array(
+                  'multiple' => 'true',
+                  'size' => '12',
+                ),
+                'choices' => call_user_func(function() {
+                  $currencies = self::get_currencies();
+                  $choices = array();
+                  foreach ($currencies as $currency) {
+                    $choices[$currency['code']] = "[{$currency['code']}] {$currency['name']}";
+                  }
+                  ksort($choices);
+                  return $choices;
+                }),
+              ),
+              'default_currency' => array(
+                'title' => __('Default Currency', 'text-domain'),
+                'type' => 'select',
+                'text' => __('Set the currency that will be the default'),
+                'choices' => call_user_func(function() {
+                  $currencies = self::get_currencies();
+                  $choices = array();
+                  foreach ($currencies as $currency) {
+                    $choices[$currency['code']] = "[{$currency['code']}] {$currency['name']}";
+                  }
+                  ksort($choices);
+                  return $choices;
+                }),
+              ),
+              'base_currency' => array(
+                'title' => __('Base Currency', 'text-domain'),
+                'type' => 'select',
+                'text' => __('Set the base currency of your website'),
+                'choices' => call_user_func(function() {
+                  $currencies = self::get_currencies();
+                  $choices = array();
+                  foreach ($currencies as $currency) {
+                    $choices[$currency['code']] = "[{$currency['code']}] {$currency['name']}";
+                  }
+                  ksort($choices);
+                  return $choices;
+                }),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    $options = new RationalOptionPages($pages);        
+
+  }
+
   # Adds some query variables to WordPress' allowed query variables list
   public function queryvars($qvars) {
 
@@ -163,7 +267,10 @@ class MrFixerIO {
     $atts = shortcode_atts(array(
 
       # Currency to convert to
-      "currency" => self::get_currency(),
+      "currency" => call_user_func(function() {
+         $currency = self::get_currency();
+         return $currency['code'];
+      }),
 
       # Value to convert
       "value" => '1.00',
@@ -174,7 +281,7 @@ class MrFixerIO {
 
     # If the provided currency is the same as the base currency, don't bother
     # converting the value 
-    if ($atts['currency'] === get_option(self::prefix . 'default')) {
+    if ($atts['currency'] === self::get_setting('base_currency')) {
       return "{$currencies[$atts['currency']]['symbol']}{$atts['value']}";
     }
 
@@ -182,7 +289,7 @@ class MrFixerIO {
     $rates = self::get_rates();
 
     # Convert the value to the given rate
-    $converted = number_format(((float)$atts['value'] * (float)$rates['rates'][$currencies[$atts['currency']]['currency']]), 2);
+    $converted = number_format(((float)$atts['value'] * (float)$rates['rates'][$currencies[$atts['currency']]['code']]), 2);
 
     # Return the rate, prepended with the currency symbol for the given currency
     return "{$currencies[$atts['currency']]['symbol']}{$converted}";
@@ -212,7 +319,7 @@ class MrFixerIO {
     foreach ($currencies as $currency) {
 
       # Append a link to the currency conversion URL for this currency
-      $links .= "<a class=\"currency\" href=" . self::currency_url($currency) . ">{$currency['code']}</a>\n";
+      $links .= "<a class=\"currency\" href=" . self::currency_url($currency['code']) . ">{$currency['code']}</a>\n";
     }
 
     # Return an HTML widget containing the links
@@ -231,6 +338,17 @@ class MrFixerIO {
     return add_query_arg(array('mr-fixer-io-cur' => $currency));
   }
 
+  # Returns the value of the supplied setting name
+  private function get_setting($setting) {
+
+    # Get the settions option - this should return an array of settings
+    $settings = get_option(self::prefix . 'settings', $this->settings);
+
+    # Return the given setting, or null if it doesn't exist
+    return (isset($settings[$setting])) ? $settings[$setting] : NULL;
+
+  }
+
   # Return the current exchange rates
   private function get_rates() {
 
@@ -241,7 +359,7 @@ class MrFixerIO {
       $allowed_currencies = self::get_allowed_currencies();
 
       # Get our base currency
-      $base = get_option(self::prefix . 'base');
+      $base = self::get_setting('base_currency');
 
       # Instantiate an empty container to fill with currencies
       $currencies = array();
@@ -272,10 +390,10 @@ class MrFixerIO {
     if (null === $this->allowed_currencies) {
 
       # Get the stored list of allowed currencies, if it exists
-      $allowed_currencies = get_option(self::prefix . 'allowed_currencies');
+      $allowed_currencies = self::get_setting('allowed_currencies');
 
       # Get the list of applicable currencies
-      $currencies = get_currencies();
+      $currencies = self::get_currencies();
 
       # Initialise a shared allowed currencies array
       $this->allowed_currencies = array();
@@ -308,7 +426,7 @@ class MrFixerIO {
 
       # Check whether the currencies option is set, and whether it is
       # old enough to be refreshed.  If not, fetch a new set
-      if (!count($currencies) || (time() - $currencies_timestamp > 2592000 /* 30 days in seconds */)) {
+      if (!count($this->currencies) || (time() - $currencies_timestamp > 2592000 /* 30 days in seconds */)) {
 
         self::fetch_currencies_meta();
 
@@ -334,6 +452,9 @@ class MrFixerIO {
       # Call the WP_Session plugin as an object
       $wp_session = WP_Session::get_instance();
 
+      # Get the list of applicable currencies
+      $currencies = self::get_currencies();
+
       # Set the stored currency, depending on if it is in the session or not
       $stored_currency = (!empty($wp_session[self::prefix . 'currency'])) 
 
@@ -341,11 +462,11 @@ class MrFixerIO {
         ? $wp_session[self::prefix . 'currency'] 
 
         # Otherwise set it to the default currency
-        : get_option(self::prefix . 'default');
+        : $currencies[self::get_setting('default_currency')];
 
       # Set the currency property to the query var, defaulting to the stored
       # currency we already have
-      $this->currency = get_query_var('mr-fixer-io-cur', $stored_currency);
+      $this->currency = $currencies[get_query_var('mr-fixer-io-cur', $stored_currency['code'])];
 
       # If the currency property does not match the stored currency, save the
       # property to the session
@@ -532,4 +653,3 @@ class mrFixerIO_Widget_Selected_Currency extends WP_Widget {
 mrFixerIO::getInstance();
 
 ?>
-
