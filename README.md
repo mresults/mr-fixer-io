@@ -35,8 +35,8 @@ The following features will be built
 - [x] ~~Widget to display the selected currency~~ (done)
 - [x] ~~Dashboard settings page~~ (done)
 - [x] ~~'Base currency' setting~~ (done)
-- [x] 'Available currencies' setting
-- [x] 'Default currency' setting
+- [x] ~~'Available currencies' setting~~ (done)
+- [x] ~~'Default currency' setting~~ (done)
 - [ ] 'Prefix currency ISO code before converted values' setting
 - [ ] Cache fixer.io requests to save bandwidth
 - [ ] Enable currency conversion to occur via AJAX request
