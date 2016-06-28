@@ -99,14 +99,6 @@ class MrFixerIO {
     # Write the plugin's default settings to the database
     add_option(self::prefix . 'settings', $this->settings);
 
-    # in the plugin
-    add_option(self::prefix . 'allowed_currencies', array(
-      'AUD' => array(), 
-      'USD' => array(),
-      'GBP' => array(), 
-      'PHP' => array(),
-    ));
-
     # Add a WordPress option containing the currencies offered by fixer.io
     add_option(self::prefix . 'currencies', self::fetch_currencies_meta());
 
@@ -114,11 +106,6 @@ class MrFixerIO {
     # fetched
     add_option(self::prefix . 'currencies_timestamp', time());
 
-    # Add a WordPress option containing the default selected currency
-    add_option(self::prefix . 'default_currency', 'AUD');
-
-    # Add a WordPress option containing the base currency
-    add_option(self::prefix . 'base', 'AUD');
   }
 
   # Remove plugin settions on deactivation
@@ -126,11 +113,8 @@ class MrFixerIO {
 
     # Delete all the options added when activation occurred
     delete_option(self::prefix . 'settings');
-    delete_option(self::prefix . 'allowed_currencies');
     delete_option(self::prefix . 'currencies');
     delete_option(self::prefix . 'currencies_timestamp');
-    delete_option(self::prefix . 'default_currency');
-    delete_option(self::prefix . 'base');
   }
 
   # Add some WordPress shortcode hooks
