@@ -18,6 +18,14 @@ This shortcode will display the currently selected currency.
 - A currency selection widget is provided.  The options are defined by the available currencies selected in the plugin's settings.
 - A selected currency widget is provided.  The widget will display the ISO code of the currently selected currency.
 
+## Features
+- Retains selected currency via local storage, with session fallback
+- 'Instant' conversion via Javascript DOM manipulation with server request fallback
+
+## Libraries
+- Uses a modified version of [Rational Option Pages](https://github.com/jeremyHixon/RationalOptionPages) to simplify settings page generation
+- Uses the [WP Session Manager](https://wordpress.org/plugins/wp-session-manager/) plugin to handle fallback of currency selection storage
+
 ## History
 The plugin was built as a training exercise for [Marketing Results](https://www.marketingresults.com.au) staff, to introduce WordPress plugin development concepts.  The initial plugin provided
 - A shortcode to render a currency selection widget
@@ -38,7 +46,7 @@ The following features will be built
 - [x] ~~'Available currencies' setting~~ (done)
 - [x] ~~'Default currency' setting~~ (done)
 - [ ] 'Prefix currency ISO code before converted values' setting
-- [ ] Cache fixer.io requests to save bandwidth
-- [ ] Enable currency conversion to occur via AJAX request
+- [x] Cache fixer.io requests to save bandwidth
+- [x] Enable currency conversion to occur via AJAX request
 - [ ] Add default styling to the currency selector shortcode and widget
 - [ ] Add default styling to the selected currency shortcode and widget

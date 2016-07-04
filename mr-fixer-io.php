@@ -82,6 +82,9 @@ class MrFixerIO {
     # Implements an options page
     self::add_options_page();
 
+    # Implements Javascript
+    self::add_javascript();
+
   }
 
   # Dummy - prevents instantiation of a copy of this plugin
@@ -141,6 +144,9 @@ class MrFixerIO {
   # Adds some WordPress widget hooks
   public function add_widgets() {
 
+    # Require the widgets include
+    require_once('lib/widgets.php');
+
     # Currency selector widget
     add_action('widgets_init', function() { 
       register_widget('mrFixerIO_Widget_Currency_Selector'); 
@@ -150,6 +156,34 @@ class MrFixerIO {
     add_action('widgets_init', function() { 
       register_widget('mrFixerIO_Widget_Selected_Currency'); 
     });
+
+  }
+
+  # Enqueue Javascript
+  public function add_javascript() {
+
+    # Enqueue core conversion Javascript on enqueue_scripts hook
+    add_action('wp_enqueue_scripts', array($this, 'enqueue_javascript_core'));
+
+  }
+
+  # Enqueue the core conversion Javascript
+  public function enqueue_javascript_core() {
+
+    # Build an array of data to supply to the core conversion script
+    $data = array(
+      'settings' => array(
+        'allowed_currencies' => self::get_allowed_currencies(),
+        'default_currency' => self::get_setting('default_currency'),
+        'base_currency' => self::get_setting('base_currency'),
+      ),
+      'currency' => self::get_currency(),
+      'rates' => self::get_rates(),
+    );
+
+    # Enqueue the core conversion script
+    wp_enqueue_script('mr-ifs-sync-sync', plugin_dir_url(__FILE__) . 'js/mr-fixer-io.js', array('jquery'));
+    wp_localize_script('mr-ifs-sync-sync', 'MRFixerIO', $data);
 
   }
 
@@ -247,6 +281,9 @@ class MrFixerIO {
   # Perform currency conversion for given attributes
   public function shortcode_convert($atts) {
 
+    # Check for the existence of a supplied currency attribute
+    $currency_supplied = isset($atts['currency']);
+
     # Set some default attributes but allow them to be overridden
     $atts = shortcode_atts(array(
 
@@ -263,10 +300,20 @@ class MrFixerIO {
     # Get the list of allowed currencies
     $currencies = self::get_allowed_currencies();
 
+    # Initialise an empty HTML attributes array
+    $html_atts = array();
+
+    # Add a currency HTML attribute if it is present in the shortode
+    if ($currency_supplied) {
+      $html_atts[] = 'mrfixerio:curr="' . $atts['currency'] . '"';
+    }
+
+    $html_atts[] = 'mrfixerio:val="' . $atts['value'] . '"';
+
     # If the provided currency is the same as the base currency, don't bother
     # converting the value 
     if ($atts['currency'] === self::get_setting('base_currency')) {
-      return "{$currencies[$atts['currency']]['symbol']}{$atts['value']}";
+      return "<span class=\"mr-fixer-io-value\" " . implode(" ", $html_atts) . ">{$currencies[$atts['currency']]['symbol']}{$atts['value']}</span>";
     }
 
     # Call the get_rates method which returns current currency conversion rates
@@ -276,7 +323,7 @@ class MrFixerIO {
     $converted = number_format(((float)$atts['value'] * (float)$rates['rates'][$currencies[$atts['currency']]['code']]), 2);
 
     # Return the rate, prepended with the currency symbol for the given currency
-    return "{$currencies[$atts['currency']]['symbol']}{$converted}";
+    return "<span class=\"mr-fixer-io-value\" " . implode(" ", $html_atts) . ">{$currencies[$atts['currency']]['symbol']}{$converted}</span>";
   }
 
   # Returns an HTML fragment containing the selected currency
@@ -286,7 +333,7 @@ class MrFixerIO {
     $currency = self::get_currency();
 
     # Return the currency code for the currency
-    return '<span class="' . self::prefix . '"selected_currency">' . $currency['code'] . '</span>';
+    return '<span class="mr-fixer-io-currency">' . $currency['code'] . '</span>';
 
   }
 
@@ -303,7 +350,7 @@ class MrFixerIO {
     foreach ($currencies as $currency) {
 
       # Append a link to the currency conversion URL for this currency
-      $links .= "<a class=\"currency\" href=" . self::currency_url($currency['code']) . ">{$currency['code']}</a>\n";
+      $links .= "<a class=\"mr-fixer-io-convert-trigger\" mrfixerio:curr=\"{$currency['code']}\" href=" . self::currency_url($currency['code']) . ">{$currency['code']}</a>\n";
     }
 
     # Return an HTML widget containing the links
@@ -503,132 +550,6 @@ class MrFixerIO {
 
     return $this->currencies;
 
-  }
-
-}
-
-# This widget is a functional replacement for the currency selector shortcode
-class mrFixerIO_Widget_Currency_Selector extends WP_Widget {
-
-  # Initialise the widget
-  public function __construct() {
-
-    $widget_ops = array(
-      'classname' => 'mr_fixer_io_widget_currency_selector',
-      'description' => 'Presents currency selection options',
-    );
-
-    parent::__construct('mr_fixer_op_widget_currency_selector', 'Fixer.io Currency Selector', $widget_ops);
-
-  }
-
-  # Outputs the widget instance's HTML code to WordPress
-  public function widget($args, $instance) {
-
-    #Before widget filter
-    print $args['before_widget'];
-
-    # Print the title if one exists
-    if (!empty($instance['title'])) {
-      print $args['before_title'] . apply_filters('widget_title', $instance['title']) . $args['after_title'];
-    }
-
-    # Get the currency selector HTML from the main plugin
-    $mr_fixer_io = mrFixerIO::getInstance();
-
-    # ... and then output it
-    print $mr_fixer_io->currency_select();
-
-    # After widget filter
-    print $args['after_widget'];
-  }
-
-  # Simple form to set widget options - not much here at the moment
-  public function form($instance) {
-    $title = !empty($instance['title']) ? $instance['title'] : __('New title', 'text_domain');
-
-    ?>
-      <p>
-        <label for="<?php print esc_attr($this->get_field_id('title')); ?>"><?php _e(esc_attr('Title:')); ?></label>
-        <input 
-          class="widefat" 
-          id="<?php print esc_attr($this->get_field_id('title')); ?>"
-          name="<?php print esc_attr($this->get_field_name('title')); ?>"
-          type="text"
-          value="<?php print esc_attr($title); ?>"
-        />
-    </p>
-    <?php
-  }
-
-  # Handles input for the above form
-  public function update($new_instance, $old_instance) {
-    $instance = array();
-    $instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
-    return $instance;
-  }
-
-}
-
-# This widget is a functional replacement for the selected currency shortcode
-class mrFixerIO_Widget_Selected_Currency extends WP_Widget {
-
-  # Initialise the widget
-  public function __construct() {
-
-    $widget_ops = array(
-      'classname' => 'mr_fixer_io_widget_selected_currency',
-      'description' => 'Presents the currently selected currency',
-    );
-
-    parent::__construct('mr_fixer_op_widget_selected_currency', 'Fixer.io Selected Currency', $widget_ops);
-
-  }
-
-  # Outputs the widget instance's HTML code to WordPress
-  public function widget($args, $instance) {
-
-    #Before widget filter
-    print $args['before_widget'];
-
-    # Print the title if one exists
-    if (!empty($instance['title'])) {
-      print $args['before_title'] . apply_filters('widget_title', $instance['title']) . $args['after_title'];
-    }
-
-    # Get the currency selector HTML from the main plugin
-    $mr_fixer_io = mrFixerIO::getInstance();
-
-    # ... and then output it
-    print $mr_fixer_io->selected_currency();
-
-    # After widget filter
-    print $args['after_widget'];
-  }
-
-  # Simple form to set widget options - not much here at the moment
-  public function form($instance) {
-    $title = !empty($instance['title']) ? $instance['title'] : __('New title', 'text_domain');
-
-    ?>
-      <p>
-        <label for="<?php print esc_attr($this->get_field_id('title')); ?>"><?php _e(esc_attr('Title:')); ?></label>
-        <input 
-          class="widefat" 
-          id="<?php print esc_attr($this->get_field_id('title')); ?>"
-          name="<?php print esc_attr($this->get_field_name('title')); ?>"
-          type="text"
-          value="<?php print esc_attr($title); ?>"
-        />
-    </p>
-    <?php
-  }
-
-  # Handles input for the above form
-  public function update($new_instance, $old_instance) {
-    $instance = array();
-    $instance['title'] = (!empty($new_instance['title'])) ? strip_tags($new_instance['title']) : '';
-    return $instance;
   }
 
 }
