@@ -46,7 +46,7 @@ The following features will be built
 - [x] ~~'Available currencies' setting~~ (done)
 - [x] ~~'Default currency' setting~~ (done)
 - [ ] 'Prefix currency ISO code before converted values' setting
-- [x] Cache fixer.io requests to save bandwidth
-- [x] Enable currency conversion to occur via AJAX request
+- [x] ~~Cache fixer.io requests to save bandwidth~~ (done)
+- [x] ~~Enable currency conversion to occur via AJAX request~~ (done)
 - [ ] Add default styling to the currency selector shortcode and widget
 - [ ] Add default styling to the selected currency shortcode and widget
