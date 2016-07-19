@@ -126,7 +126,4 @@ class mrFixerIO_Widget_Selected_Currency extends WP_Widget {
 
 }
 
-# Start the plugin
-mrFixerIO::getInstance();
-
 ?>

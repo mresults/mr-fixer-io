@@ -55,7 +55,7 @@ class MrFixerIO {
     if (null === static::$instance) {
 
       # Instantiate the plugin as a static instance
-      static::$instance = new static();
+      static::$instance = new MrFixerIO();
     }
 
     # Return the plugin instance
@@ -176,6 +176,7 @@ class MrFixerIO {
         'allowed_currencies' => self::get_allowed_currencies(),
         'default_currency' => self::get_setting('default_currency'),
         'base_currency' => self::get_setting('base_currency'),
+        'show_currency_code' => self::get_setting('show_currency_code'),
       ),
       'currency' => self::get_currency(),
       'rates' => self::get_rates(),
@@ -250,6 +251,16 @@ class MrFixerIO {
                   return $choices;
                 }),
               ),
+              'show_currency_code' => array(
+                'title' => __('Show Currency Code', 'text-domain'),
+                'type' => 'select',
+                'text' => __('Determine if / when to display the currency code'),
+                'choices' => array(
+                  'never' => 'Never',
+                  'nosymbol' => 'When no symbol exists for the currency',
+                  'always' => 'Always',
+                ),
+              ),
             ),
           ),
         ),
@@ -322,8 +333,10 @@ class MrFixerIO {
     # Convert the value to the given rate
     $converted = number_format(((float)$atts['value'] * (float)$rates['rates'][$currencies[$atts['currency']]['code']]), 2);
 
+    $display_code = (self::get_currency_display_setting($currencies[$atts['currency']])) ? $currencies[$atts['currency']]['code'] : '';
+
     # Return the rate, prepended with the currency symbol for the given currency
-    return "<span class=\"mr-fixer-io-value\" " . implode(" ", $html_atts) . ">{$currencies[$atts['currency']]['symbol']}{$converted}</span>";
+    return "<span class=\"mr-fixer-io-value\" " . implode(" ", $html_atts) . ">{$currencies[$atts['currency']]['symbol']}{$display_code}{$converted}</span>";
   }
 
   # Returns an HTML fragment containing the selected currency
@@ -412,6 +425,22 @@ class MrFixerIO {
 
     # Return the rates
     return $this->rates;
+  }
+
+  private function get_currency_display_setting($currency) {
+
+    $display_currency_setting = self::get_setting('show_currency_code');
+
+    if ($display_currency_setting === 'always') {
+      return true;
+    }
+
+    if ((!$currency['symbol']) && $display_currency_setting == 'nosymbol') {
+     return true;
+    }
+
+    return false;
+
   }
 
   # Gets a list of allowed currencies

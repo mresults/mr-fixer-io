@@ -81,7 +81,9 @@
         // Override value defaults if in target element's attributes
         value: ($(this).attr('mrfixerio:val'))
           ? $(this).attr('mrfixerio:val')
-          : 1
+          : 1,
+
+        show_currency_code: data.settings.show_currency_code 
 
       /* If an options hash is supplied, its values will override anything
          set above */
@@ -110,9 +112,17 @@
         ).toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
       };
 
+     console.log(MRFixerIO);
+
+      var prefix = (settings.show_currency_code == 'always')
+        ? converted.currency.code
+        : (settings.show_currency_code == 'nosymbol' && !converted.currency.symbol.length)
+          ? converted.currency.code
+          : '';
+
       /* Replate the HTML of the target object with the symbol and converted
          value */
-      $(this).html(converted.currency.symbol + converted.value);
+      $(this).html(converted.currency.symbol + prefix + converted.value);
 
     },
 
