@@ -21,6 +21,7 @@ This shortcode will display the currently selected currency.
 ## Features
 - Retains selected currency via local storage, with session fallback
 - 'Instant' conversion via Javascript DOM manipulation with server request fallback
+- Option to prefix converted value with currency code
 
 ## Libraries
 - Uses a modified version of [Rational Option Pages](https://github.com/jeremyHixon/RationalOptionPages) to simplify settings page generation
@@ -45,7 +46,7 @@ The following features will be built
 - [x] ~~'Base currency' setting~~ (done)
 - [x] ~~'Available currencies' setting~~ (done)
 - [x] ~~'Default currency' setting~~ (done)
-- [ ] 'Prefix currency ISO code before converted values' setting
+- [x] ~~'Prefix currency ISO code before converted values' setting~~
 - [x] ~~Cache fixer.io requests to save bandwidth~~ (done)
 - [x] ~~Enable currency conversion to occur via AJAX request~~ (done)
 - [ ] Add default styling to the currency selector shortcode and widget
